@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+    test-localstack:
+        container_name: test-localstack
+        image: localstack/localstack-full:0.12.17.5
+        ports:
+            - 443:443
+            - 4510-4530:4510-4530
+            - 4566:4566
+            - 4571:4571
+            # - 7080:8080 # TODO: web ui not working!
+        environment:
+            - LOCALSTACK_API_KEY=${LOCALSTACK_LICENSE}
+            - USE_LIGHT_IMAGE=0
+            - IMAGE_NAME=localstack/localstack-full:0.12.17.5
+            - MAIN_CONTAINER_NAME=test-localstack
+            - SERVICES=cloudformation,cloudfront,apigateway,apigatewayv2,iam,secretsmanager,lambda,s3,sqs,sts,ec2,kafka,elb,elbv2
+            - DEFAULT_REGION=us-east-1
+            - AWS_ACCESS_KEY_ID=test
+            - AWS_SECRET_ACCESS_KEY=test
+            - S3_SKIP_SIGNATURE_VALIDATION=1
+            - DEBUG=1
+            # - LS_LOG=trace # uncomment for detailed logs
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        network_mode: bridge

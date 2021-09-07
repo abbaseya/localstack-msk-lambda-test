@@ -1,0 +1,7 @@
+.env
+.serverless
+cluster-info.json
+localstack.log
+msk.txt
+node_modules
+package-lock.json

@@ -1,0 +1,14 @@
+{
+  "name": "lambda-http",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "serverless deploy --config serverless.yml --stage local"
+  },
+  "keywords": [],
+  "author": "Ahmed Abbas me@abbas.guru",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^2.43.1",
+    "serverless-localstack": "^0.4.32"
+  }
+}

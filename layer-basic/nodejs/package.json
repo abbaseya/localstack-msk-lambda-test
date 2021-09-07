@@ -1,0 +1,12 @@
+{
+  "name": "lambda-layer-basic",
+  "version": "0.1.0",
+  "keywords": [],
+  "author": "Ahmed Abbas me@abbas.guru",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.918.0",
+    "kafkajs": "^1.15.0",
+    "lodash": "^4.17.21"
+  }
+}
