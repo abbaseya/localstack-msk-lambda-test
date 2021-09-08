@@ -250,5 +250,5 @@ do
 done
 echo
 echo
-echo -e "Now observe LocalStack logs around ${RED}KafkaJSConnectionClosedError${NC} and/or ${RED}EventSourceArn${NC}!"
+echo -e "Now observe LocalStack logs around ${RED}ECONNREFUSED${NC}, ${RED}KafkaJSConnectionClosedError${NC}, or ${RED}EventSourceArn${NC}!"
 echo -e "${GRAY}docker container logs --follow test-localstack${NC}"
