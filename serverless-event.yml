@@ -1,0 +1,146 @@
+service: lambda-process
+frameworkVersion: '2'
+useDotenv: true
+
+provider:
+  name: aws
+  apiName: ${self:service}-${self:provider.stage}
+  apiGateway:
+    minimumCompressionSize: 1024
+    metrics: false
+    description: "Serverless ${self:service} Deployment"
+  stage: ${opt:stage, self:provider.environment.version}
+  region: ${env:REGION}
+  deploymentPrefix: deploy-serverless
+  endpointType: EDGE
+  deploymentBucket:
+    name: lambda-bucket
+    blockPublicAccess: true
+    maxPreviousDeploymentArtifacts: 5
+    tags:
+      Name: ${self:service}
+      env: ${self:provider.stage}
+      app: ${self:service}
+  timeout: 600
+  memorySize: 128
+  lambdaHashingVersion: 20201221
+  tags:
+    Name: ${self:service}
+    env: ${self:provider.stage}
+    app: ${self:service}
+  stackTags:
+    Name: ${self:service}
+    env: ${self:provider.stage}
+    app: ${self:service}
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    version: "v1"
+    stage: ${self:provider.stage}
+    AWS_CUSTOM_ACCESSID: "test"
+    AWS_CUSTOM_SECRETACCESSKEY: "test"
+    AWS_CUSTOM_AWS_REGION: "us-east-1"
+    AWS_S3_MAX_AGE: "3153600"
+    AWS_S3_HTML_DOCUMENT_TYPE: "text/html"
+    AWS_S3_CSS_DOCUMENT_TYPE: "text/css"
+    AWS_S3_JSON_DOCUMENT_TYPE: "application/json"
+    KAFKA_BROKER: ${env:KAFKA_BROKER}
+    KAFKA_DATA_TOPIC_PREFIX: "lambda_data"
+  tracing:
+    apiGateway: ${self:custom.debugLogging.${self:provider.stage}}
+    lambda: ${self:custom.debugLogging.${self:provider.stage}}
+  logs:
+    restApi:
+      executionLogging: ${self:custom.debugLogging.${self:provider.stage}}
+      enableAccessLogging: ${self:custom.debugLogging.${self:provider.stage}}
+      accessLogging: ${self:custom.debugLogging.${self:provider.stage}}
+      level: ERROR
+    httpApi: ${self:custom.debugLogging.${self:provider.stage}}
+    lambda: ${self:custom.debugLogging.${self:provider.stage}}
+    websocket: ${self:custom.debugLogging.${self:provider.stage}}
+    frameworkLambda: ${self:custom.debugLogging.${self:provider.stage}}
+  logRetentionInDays: ${self:custom.logRetentionInDays.${self:provider.stage}}
+
+plugins:
+  - serverless-localstack
+
+package:
+  individually: true
+  excludeDevDependencies: true
+  patterns:
+    - 'lambda-process/**'
+  exclude:
+    - 'node_modules/**'
+    - 'serverless*.yml'
+
+layers:
+  layerBasicNodeModule:
+    path: layer-basic
+    name: layerBasic-${self:provider.stage}
+    description: "basic node_module"
+    compatibleRuntimes:
+      - nodejs12.x
+    package:
+      include:
+        - nodejs/node_modules/**
+      exclude:
+        - 'node_modules/**/README.*'
+        - 'node_modules/**/test/**'
+
+functions:
+  
+  processDataTopic0:
+    handler: lambda-process/handlers.processDataTopic
+    runtime: nodejs12.x
+    timeout: 600
+    memorySize: 1024
+    tags:
+      env: ${self:provider.stage}
+      app: ${self:service}-processDataTopic
+    layers:
+      - { Ref: LayerBasicNodeModuleLambdaLayer }
+    events:
+      # - msk:
+      #     topic: lambda_data_0
+      #     arn: ${self:custom.${self:provider.stage}.msk.arn}
+      #     batchSize: 1000
+      #     enabled: true
+      - kafka:
+          topic: lambda_data_0
+          accessConfigurations:
+            saslScram512Auth: ${env:SECRET_ARN}
+            vpcSubnet:
+              - ${env:VPC_SUBNET1}
+              - ${env:VPC_SUBNET2}
+              - ${env:VPC_SUBNET3}
+              - ${env:VPC_SUBNET4}
+              - ${env:VPC_SUBNET5}
+              - ${env:VPC_SUBNET6}
+            vpcSecurityGroup:
+              - ${env:SECURITY_GROUP1}
+              - ${env:SECURITY_GROUP2}
+          bootstrapServers:
+            - ${env:KAFKA_BROKER}
+          enabled: true
+
+custom:
+  localstack:
+    stages:
+      - local
+    host: http://localhost
+    edgePort: 4566
+    autostart: true
+    lambda:
+      mountCode: False
+    docker:
+      sudo: False
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  logRetentionInDays:
+    local: 14
+  debugLogging:
+    local: true
+  disableFunctionLogging:
+    local: false
+  local:
+    msk:
+      arn: ${env:CLUSTER_ARN}
