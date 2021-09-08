@@ -14,7 +14,11 @@
 2. Point `localhost.localstack.cloud` to `127.0.0.1` at your `/etc/hosts`
 3. Modify `REGION` variable near the top of `localstack.sh` to match your AWS default profile
 4. Run: `./localstack.sh`
-5. Observe LocalStack tailed logs around `KafkaJSConnectionClosedError`
+    > To force creating a fresh container: `./localstack.sh --recreate`
+5. Observe LocalStack tailed logs around `ECONNREFUSED`, `KafkaJSConnectionClosedError`, or `EventSourceArn`!
+    ```
+    docker container logs --follow test-localstack
+    ```
 6. Review comments in teh above script, as well as the generated files:
   * `cluster-info.json`
   * `localstack.log`

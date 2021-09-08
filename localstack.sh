@@ -61,9 +61,8 @@ zookeeper.connection.timeout.ms = 2000
 log.roll.ms = 604800000
 EOM
     aws --endpoint-url=$ENDPOINT kafka create-configuration --name $MSK_NAME --server-properties file://$MSK_CONFIGURATION > $LOCALSTACK_LOG 2>&1
-else
-    cat $LOCALSTACK_LOG
 fi
+cat $LOCALSTACK_LOG
 echo
 echo -e "${BLUE}5. Create Kafka Cluster if not exists ...${NC}"
 aws --endpoint-url=$ENDPOINT kafka describe-cluster --cluster-arn $CLUSTER_ARN > $LOCALSTACK_LOG 2>&1
@@ -176,15 +175,17 @@ setsecret()
 {
     SECRET_ARN=$(aws --endpoint-url=$ENDPOINT secretsmanager list-secrets --query "SecretList[?Name==\`$SECRET_NAME\`].ARN" --output text)
 }
+NEW_SECRET=''
 setsecret
 if [[ -z $SECRET_ARN ]]
 then
+    NEW_SECRET='yes'
     aws --endpoint-url=$ENDPOINT secretsmanager create-secret --name $SECRET_NAME
     setsecret
 fi
 if [[ -n $SECRET_ARN ]]
 then
-    echo $SECRET_ARN
+    [ "$NEW_SECRET" == '' ] && echo $SECRET_ARN
     sed -ri -e 's!SECRET_ARN=.*$!SECRET_ARN='"$SECRET_ARN"'!g' .env.local
     [ -f '.env.local-e' ] && rm .env.local-e
 else
