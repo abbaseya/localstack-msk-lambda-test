@@ -171,22 +171,21 @@ else
 fi
 echo
 echo -e "${BLUE}7. Create LocalStack Secret ...${NC}"
-LOCALSTACK_SECRET_ARN=''
+SECRET_ARN=''
 setsecret()
 {
-    LOCALSTACK_SECRET_ARN=$(aws --endpoint-url=$ENDPOINT secretsmanager list-secrets --query "SecretList[?Name==\`$SECRET_NAME\`].ARN" --output text)
+    SECRET_ARN=$(aws --endpoint-url=$ENDPOINT secretsmanager list-secrets --query "SecretList[?Name==\`$SECRET_NAME\`].ARN" --output text)
 }
 setsecret
-if [[ -z $LOCALSTACK_SECRET_ARN ]]
+if [[ -z $SECRET_ARN ]]
 then
     aws --endpoint-url=$ENDPOINT secretsmanager create-secret --name $SECRET_NAME
     setsecret
-else
-    echo $LOCALSTACK_SECRET_ARN
 fi
-if [[ -n $LOCALSTACK_SECRET_ARN ]]
+if [[ -n $SECRET_ARN ]]
 then
-    sed -ri -e 's!LOCALSTACK_SECRET_ARN=.*$!LOCALSTACK_SECRET_ARN='"$LOCALSTACK_SECRET_ARN"'!g' .env.local
+    echo $SECRET_ARN
+    sed -ri -e 's!SECRET_ARN=.*$!SECRET_ARN='"$SECRET_ARN"'!g' .env.local
     [ -f '.env.local-e' ] && rm .env.local-e
 else
     echo -e "${RED}Unable to fetch SecretList ARN. Consider waiting a bit more!${NC}"

@@ -22,5 +22,5 @@
 
 ## Notes
 
-1. Connection to Kafka happens around line 26 at `localstack-msk-lambda-test/lambda-http/ContentHelper.js`
-2. For testing `ZookeeperConnectString` instead, uncommend line 139 at `localstack.sh` and try again
+1. Connection to Kafka happens around line 26 at `lambda-http/ContentHelper.js`
+2. For testing `ZookeeperConnectString` instead, uncommend line 160 at `localstack.sh` and try again
