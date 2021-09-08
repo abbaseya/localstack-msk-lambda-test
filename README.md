@@ -5,6 +5,7 @@
 * Bash v3+
 * Curl v7+
 * AWS CLI v2+
+* Serverless v2+
 * Node.js v12+
 
 ## Instructions
