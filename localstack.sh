@@ -20,6 +20,38 @@ RED='\033[1;31m'
 GRAY='\033[0;37m'
 NC='\033[0m'
 
+usage()
+{
+cat << EOF
+usage: $0 [-r|--recreate] [-m|--use-msk]
+
+LocalStack Lambda/MSK Test Tool
+
+OPTIONS:
+-r|--recreate           Stop and remove containers and/or volumes before starting again
+-k|--use-kafka          Use self-managaed Kafka instead of MSK
+-z|--use-zookeeper      Fetch ZookeeperConnectString instead of BootstrapBrokerString
+-c|--clean              Stop and remove all test containers and volumes
+-h|--help               Usage guide
+
+EOF
+}
+
+clean()
+{
+    if [[ "$( docker container inspect -f '{{.State.Status}}' test-kafka )" == "running" ]]
+    then
+        docker-compose -f docker-compose-kafka.yml down --remove-orphans
+        docker volume rm test-kafka-data
+        docker volume rm test-zookeeper-conf
+        docker volume rm test-zookeeper-data
+    fi
+    if [[ "$( docker container inspect -f '{{.State.Status}}' test-localstack )" == "running" ]]
+    then
+        docker-compose down --remove-orphans
+    fi
+}
+
 RECREATE=''
 USE_MSK='yes'
 USE_ZOOKEEPER=''
@@ -35,6 +67,10 @@ do
         -z | --use-zookeeper)
             USE_ZOOKEEPER='yes'
             ;;
+        -c | --clean)
+            clean
+            exit
+            ;;
         -h | --help)
             usage
             exit
@@ -45,17 +81,7 @@ done
 
 if [[ "$RECREATE" != '' ]]
 then
-    if [[ "$( docker container inspect -f '{{.State.Status}}' test-kafka )" == "running" ]]
-    then
-        docker-compose -f docker-compose-kafka.yml down --remove-orphans
-        docker volume rm test-kafka-data
-        docker volume rm test-zookeeper-conf
-        docker volume rm test-zookeeper-data
-    fi
-    if [[ "$( docker container inspect -f '{{.State.Status}}' test-localstack )" == "running" ]]
-    then
-        docker-compose down --remove-orphans
-    fi
+    clean
 fi
 
 case "$OSTYPE" in
@@ -400,19 +426,3 @@ echo
 echo
 echo -e "Now observe LocalStack logs around ${RED}ECONNREFUSED${NC}, ${RED}KafkaJSConnectionClosedError${NC}, ${RED}EventSourceArn${NC}, ${RED}[BrokerPool] Closed connection${NC}, or ${RED}There is no leader for this topic-partition as we are in the middle of a leadership election${NC}!"
 echo -e "${GRAY}docker container logs --follow test-localstack${NC}"
-
-usage()
-{
-cat << EOF
-usage: $0 [-r|--recreate] [-m|--use-msk]
-
-LocalStack Lambda/MSK Test Tool
-
-OPTIONS:
--r|--recreate           Stop and remove containers and/or volumes before starting again
--k|--use-kafka          Use self-managaed Kafka instead of MSK
--z|--use-zookeeper      Fetch ZookeeperConnectString instead of BootstrapBrokerString
--h|--help               Usage guide
-
-EOF
-}
