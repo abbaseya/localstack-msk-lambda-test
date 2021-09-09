@@ -1,4 +1,4 @@
-service: lambda-http
+service: lambda-process
 frameworkVersion: '2'
 useDotenv: true
 
@@ -44,7 +44,7 @@ provider:
     AWS_S3_CSS_DOCUMENT_TYPE: "text/css"
     AWS_S3_JSON_DOCUMENT_TYPE: "application/json"
     KAFKA_BROKER: ${env:KAFKA_BROKER}
-    KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC}
+    KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC_PREFIX}
   tracing:
     apiGateway: ${self:custom.debugLogging.${self:provider.stage}}
     lambda: ${self:custom.debugLogging.${self:provider.stage}}
@@ -67,7 +67,7 @@ package:
   individually: true
   excludeDevDependencies: true
   patterns:
-    - 'lambda-http/**'
+    - 'lambda-process/**'
   exclude:
     - 'node_modules/**'
     - 'serverless*.yml'
@@ -87,36 +87,23 @@ layers:
         - 'node_modules/**/test/**'
 
 functions:
-  httpOnPost:
-    handler: lambda-http/handlerHttpPost.handlePost
+  
+  processDataTopic0:
+    handler: lambda-process/handlers.processDataTopic
     runtime: nodejs12.x
-    timeout: 900
-    vpc:
-      securityGroupIds:
-        - ${env:SECURITY_GROUP1}
-        - ${env:SECURITY_GROUP2}
-      subnetIds:
-        - ${env:VPC_SUBNET1}
-        - ${env:VPC_SUBNET2}
-        - ${env:VPC_SUBNET3}
-        - ${env:VPC_SUBNET4}
-        - ${env:VPC_SUBNET5}
-        - ${env:VPC_SUBNET6}
+    timeout: 600
+    memorySize: 1024
     tags:
-      Name: 'httpOnPost'
       env: ${self:provider.stage}
-      app: ${self:service}-httpOnPost
+      app: ${self:service}-processDataTopic
     layers:
       - { Ref: LayerBasicNodeModuleLambdaLayer }
     events:
-      - http:
-          path: test/post
-          method: POST
-          cors: true
-      - http:
-          path: test/post
-          method: OPTIONS
-          cors: true
+      - msk:
+          topic: ${env:LAMBDA_TOPIC}
+          arn: ${self:custom.${self:provider.stage}.msk.arn}
+          batchSize: 1000
+          enabled: true
 
 custom:
   localstack:
@@ -137,3 +124,6 @@ custom:
     local: true
   disableFunctionLogging:
     local: false
+  local:
+    msk:
+      arn: ${env:CLUSTER_ARN}

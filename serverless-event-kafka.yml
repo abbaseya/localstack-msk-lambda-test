@@ -44,7 +44,7 @@ provider:
     AWS_S3_CSS_DOCUMENT_TYPE: "text/css"
     AWS_S3_JSON_DOCUMENT_TYPE: "application/json"
     KAFKA_BROKER: ${env:KAFKA_BROKER}
-    KAFKA_DATA_TOPIC_PREFIX: "lambda_data"
+    KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC_PREFIX}
   tracing:
     apiGateway: ${self:custom.debugLogging.${self:provider.stage}}
     lambda: ${self:custom.debugLogging.${self:provider.stage}}
@@ -98,14 +98,11 @@ functions:
       app: ${self:service}-processDataTopic
     layers:
       - { Ref: LayerBasicNodeModuleLambdaLayer }
+    # LocalStack does not seem to translate --self-managed-event-source by serverless
+    # Issue addressed at https://github.com/localstack/localstack/issues/4569
     events:
-      # - msk:
-      #     topic: lambda_data_0
-      #     arn: ${self:custom.${self:provider.stage}.msk.arn}
-      #     batchSize: 1000
-      #     enabled: true
       - kafka:
-          topic: lambda_data_0
+          topic: ${env:LAMBDA_TOPIC}
           accessConfigurations:
             saslScram512Auth: ${env:SECRET_ARN}
             vpcSubnet:
@@ -141,6 +138,3 @@ custom:
     local: true
   disableFunctionLogging:
     local: false
-  local:
-    msk:
-      arn: ${env:CLUSTER_ARN}

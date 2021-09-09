@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+    test-kafka:
+        container_name: test-kafka
+        image: wurstmeister/kafka
+        ports:
+            - 9092:9092
+        environment:
+            - KAFKA_ADVERTISED_HOST_NAME=${HOST_IP}
+            - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+            - KAFKA_DELETE_TOPIC_ENABLE=true
+            - KAFKA_CREATE_TOPICS=${LAMBDA_TOPIC_PREFIX}:1:1
+            - KAFKA_ZOOKEEPER_CONNECT=test-zookeeper:2181
+        volumes:
+            - test-kafka-data:/kafka
+            - /var/run/docker.sock:/var/run/docker.sock
+        healthcheck:
+            test: ["CMD", "bash", "-c", "unset", "JMX_PORT", ";", "kafka-topics.sh", "--zookeeper", "test-zookeeper:2181", "--list"]
+        depends_on:
+            - test-zookeeper
+        networks:
+            - default
+    
+    test-zookeeper:
+        container_name: test-zookeeper
+        image: wurstmeister/zookeeper
+        ports:
+            - 2181:2181
+        volumes:
+            - test-zookeeper-conf:/opt/zookeeper-3.4.13/conf
+            - test-zookeeper-data:/opt/zookeeper-3.4.13/data
+        networks:
+            - default
+
+volumes:
+    test-kafka-data:
+        name: test-kafka-data
+    test-zookeeper-conf:
+        name: test-zookeeper-conf
+    test-zookeeper-data:
+        name: test-zookeeper-data
+
+networks:
+    default:
+        name: test-network
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.16.238.0/24
