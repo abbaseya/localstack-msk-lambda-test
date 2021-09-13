@@ -301,6 +301,13 @@ EOM
 else
     echo -e "${BLUE}${step}. Fetch self-managed Kafka Broker ...${NC}"
     let "step=step+1"
+    echo "Checking if port 9092 is busy ..."
+    KAFKA_PORT=$(netstat -abn | grep 9092)
+    if [[ -n $KAFKA_PORT ]]
+    then
+        echo "${RED}Looks like port 9092 already occupied!${NC}"
+        exit 1
+    fi
     echo -e "${GRAY}Kafka suggests using Host IP: https://github.com/wurstmeister/kafka-docker/wiki/Connectivity${NC}"
     if ! grep -q 'HOST_IP' .env
     then
@@ -386,20 +393,17 @@ then
     done
     echo
 else
-    if [[ "$RECREATE" != '' ]]
+    if ! grep -q 'LAMBDA_TOPIC' .env
     then
-        if ! grep -q 'LAMBDA_TOPIC' .env
-        then
-            echo -e "\\nLAMBDA_TOPIC=$LAMBDA_TOPIC" >> .env
-        else
-            sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env
-            [ -f '.env-e' ] && rm .env-e
-        fi
-        echo -e "${BLUE}${step}. Starting self-managed Kafka on port 9092 ...${NC}"
-        let "step=step+1"
-        docker-compose -f docker-compose-kafka.yml up -d
-        echo
+        echo -e "\\nLAMBDA_TOPIC=$LAMBDA_TOPIC" >> .env
+    else
+        sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env
+        [ -f '.env-e' ] && rm .env-e
     fi
+    echo -e "${BLUE}${step}. Starting self-managed Kafka on port 9092 ...${NC}"
+    let "step=step+1"
+    docker-compose -f docker-compose-kafka.yml up -d
+    echo
     echo -e "${BLUE}${step}. Deploy Lambda Kafka ...${NC}"
     let "step=step+1"
     npm run deploy-event-kafka
@@ -414,7 +418,7 @@ else
     done
     echo
     echo
-    echo -e "${GRAY}The latest LocalStack does seem to translate --self-managed-event-source by serverless, but the event itself does ${RED}not${GRAY} get dispatched wgen producing a message to Kafka broker!${NC}"
+    echo -e "${GRAY}The latest LocalStack seem to translate --self-managed-event-source by serverless, but the event itself does ${RED}not${GRAY} get dispatched wgen producing a message to Kafka broker!${NC}"
     # echo -e "${BLUE}${step}. Manually map topics from Lambda to Kafka ..."
     # echo -e "${GRAY}LocalStack does not seem to translate --self-managed-event-source by serverless${NC}"
     # echo -e "${GRAY}Issue addressed at https://github.com/localstack/localstack/issues/4569${NC}"
