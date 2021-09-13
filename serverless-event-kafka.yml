@@ -100,6 +100,7 @@ functions:
       - { Ref: LayerBasicNodeModuleLambdaLayer }
     # LocalStack does not seem to translate --self-managed-event-source by serverless
     # Issue addressed at https://github.com/localstack/localstack/issues/4569
+    # UPDATE: Issue resolved using the latest LocalStack image, but the event itself does not get dispatched when producing a message to Kafka broker!
     events:
       - kafka:
           topic: ${env:LAMBDA_TOPIC}

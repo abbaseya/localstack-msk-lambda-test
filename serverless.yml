@@ -44,7 +44,7 @@ provider:
     AWS_S3_CSS_DOCUMENT_TYPE: "text/css"
     AWS_S3_JSON_DOCUMENT_TYPE: "application/json"
     KAFKA_BROKER: ${env:KAFKA_BROKER}
-    KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC}
+    KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC_PREFIX}
   tracing:
     apiGateway: ${self:custom.debugLogging.${self:provider.stage}}
     lambda: ${self:custom.debugLogging.${self:provider.stage}}

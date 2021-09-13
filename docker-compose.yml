@@ -3,7 +3,7 @@ version: '3.9'
 services:
     test-localstack:
         container_name: test-localstack
-        image: localstack/localstack-full:0.12.17.5
+        image: localstack/localstack-full
         ports:
             - 443:443
             - 4510-4530:4510-4530
@@ -13,7 +13,7 @@ services:
         environment:
             - LOCALSTACK_API_KEY=${LOCALSTACK_LICENSE}
             - USE_LIGHT_IMAGE=0
-            - IMAGE_NAME=localstack/localstack-full:0.12.17.5
+            - IMAGE_NAME=localstack/localstack-full
             - MAIN_CONTAINER_NAME=test-localstack
             - SERVICES=cloudformation,cloudfront,apigateway,apigatewayv2,iam,secretsmanager,lambda,s3,sqs,sts,ec2,kafka,elb,elbv2
             - DEFAULT_REGION=us-east-1

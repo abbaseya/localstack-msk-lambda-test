@@ -18,11 +18,11 @@ const ContentHelper = {
     },
     sendCompressed: async function (chunkContainer) {
         let chunkString = JSON.stringify(chunkContainer),
-            topicIndex = (chunkContainer.micro_time_added % 10).toString(),
             brokersUrl = process.env.KAFKA_BROKER.replace('localhost', process.env.LOCALSTACK_HOSTNAME),
-            topicName = process.env.KAFKA_DATA_TOPIC_PREFIX + '_' + topicIndex;
+            topicName = process.env.KAFKA_DATA_TOPIC_PREFIX + '_0';
         
         console.log('brokersUrl:', brokersUrl);
+        console.log('topicName:', topicName);
         const client = new Kafka({
             clientId: 'default',
             brokers: brokersUrl.split(',')

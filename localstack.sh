@@ -31,6 +31,8 @@ OPTIONS:
 -r|--recreate           Stop and remove containers and/or volumes before starting again
 -k|--use-kafka          Use self-managaed Kafka instead of MSK
 -z|--use-zookeeper      Fetch ZookeeperConnectString instead of BootstrapBrokerString
+-f|--force-host         Use Host IP for MSK instead of LOCALSTACK_HOSTNAME
+-g|--force-gateway      Use Docker Gateway IP for MSK instead of LOCALSTACK_HOSTNAME
 -c|--clean              Stop and remove all test containers and volumes
 -h|--help               Usage guide
 
@@ -55,6 +57,8 @@ clean()
 RECREATE=''
 USE_MSK='yes'
 USE_ZOOKEEPER=''
+USE_HOST=''
+USE_GATEWAY=''
 while [ ! $# -eq 0 ]
 do
     case "$1" in
@@ -66,6 +70,12 @@ do
             ;;
         -z | --use-zookeeper)
             USE_ZOOKEEPER='yes'
+            ;;
+        -f | --force-host)
+            USE_HOST='yes'
+            ;;
+        -g | --force-gateway)
+            USE_GATEWAY='yes'
             ;;
         -c | --clean)
             clean
@@ -128,7 +138,18 @@ else
     echo $LAMBDA_BUCKET
 fi
 echo
-HOST_IP=''
+HOST_IP=$(ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 | awk '{ print $2 }' | cut -f2 -d: | head -n1)
+if [[ -z $HOST_IP ]]
+then
+    echo -e "${RED}Unable to fetch Host IP!${NC}"
+    exit 1
+fi
+GATEWAY_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.Gateway}}{{end}}' test-localstack)
+if [[ -z $GATEWAY_IP ]]
+then
+    echo -e "${RED}Unable to fetch Gateway IP!${NC}"
+    exit 1
+fi
 if [[ "$USE_MSK" != '' ]]
 then
     echo -e "${BLUE}${step}. Create MSK Config if not exists ...${NC}"
@@ -236,12 +257,22 @@ EOM
     let "step=step+1"
     if [[ "$USE_ZOOKEEPER" != '' ]]
     then
-        echo -e "${GREAY}@whummer mentioned that the endpoint returned from DescribeCluster (localhost:4511) is in fact the Kafka Broker URL, not the Zookeeper URL${NC}"
+        echo -e "${GRAY}@whummer mentioned that the endpoint returned from DescribeCluster (localhost:4511) is in fact the Kafka Broker URL, not the Zookeeper URL${NC}"
         KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka describe-cluster --cluster-arn $CLUSTER_ARN --query "ClusterInfo.ZookeeperConnectString" | sed -r 's/"(.*)"/\1/g')
     else
-        echo -e "${GREAY}get-bootstrap-brokers does not return anything (only using --debug returns the BootstrapBrokerString and only using https://localhost.localstack.cloud not http://localhost:4566)${NC}"
-        aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --debug > $LOCALSTACK_LOG 2>&1
-        KAFKA_BROKER=$(cat $LOCALSTACK_LOG | grep "BootstrapBrokerString" | sed -r 's/[^:]*:"(.*)"\}\\n/\1/g' | sed 's/.$//')
+        # echo -e "${GRAY}get-bootstrap-brokers does not return anything (only using --debug returns the BootstrapBrokerString and only using https://localhost.localstack.cloud not http://localhost:4566)${NC}"
+        # aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --debug > $LOCALSTACK_LOG 2>&1
+        # KAFKA_BROKER=$(cat $LOCALSTACK_LOG | grep "BootstrapBrokerString" | sed -r 's/[^:]*:"(.*)"\}\\n/\1/g' | sed 's/.$//')
+        echo -e "${GRAY}UPDATE: The latest LocalStack image now returns the BootstrapBrokerString on get-bootstrap-brokers${NC}"
+        if [[ "$USE_HOST" != '' ]]
+        then
+            KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g' | sed 's/localhost/'"$HOST_IP"'/g')
+        elif [[ "$USE_GATEWAY" != '' ]]
+        then
+            KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g' | sed 's/localhost/'"$GATEWAY_IP"'/g')
+        else
+            KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g')
+        fi
     fi
 
     if [[ -n $KAFKA_BROKER ]]
@@ -249,6 +280,15 @@ EOM
         echo $KAFKA_BROKER
         sed -ri -e 's!KAFKA_BROKER=.*$!KAFKA_BROKER='"$KAFKA_BROKER"'!g' .env.local
         [ -f '.env.local-e' ] && rm .env.local-e
+        if [[ "$USE_HOST" != '' ]]
+        then
+            echo -e "${GRAY}NOTE: MSK still returning ${RED}ECONNREFUSED${GRAY} on \"localhost:XXXX\" during testing, while we explicitly set the brokerUrl to \"$HOST_IP:XXXX\"!${NC}"
+        elif [[ "$USE_GATEWAY" != '' ]]
+        then
+            echo -e "${GRAY}NOTE: MSK still returning ${RED}NoBrokersAvailable${GRAY} on \"localhost:XXXX\" during testing, while we explicitly set the brokerUrl to \"$GATEWAY_IP:XXXX\"!${NC}"
+        else
+            echo -e "${GRAY}NOTE: MSK still returning ${RED}ECONNREFUSED${GRAY} on \"localhost:XXXX\" during testing!${NC}"
+        fi
     else
         if [[ "$USE_ZOOKEEPER" != '' ]]
         then
@@ -262,24 +302,18 @@ else
     echo -e "${BLUE}${step}. Fetch self-managed Kafka Broker ...${NC}"
     let "step=step+1"
     echo -e "${GRAY}Kafka suggests using Host IP: https://github.com/wurstmeister/kafka-docker/wiki/Connectivity${NC}"
-    HOST_IP=$(ifconfig | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | grep -v 127.0.0.1 | awk '{ print $2 }' | cut -f2 -d: | head -n1)
-    if [[ -n $HOST_IP ]]
+    if ! grep -q 'HOST_IP' .env
     then
-        if ! grep -q 'HOST_IP' .env
-        then
-            echo -e "\\nHOST_IP=$HOST_IP" >> .env
-        else
-            sed -ri -e 's!HOST_IP=.*$!HOST_IP='"$HOST_IP"'!g' .env
-            [ -f '.env-e' ] && rm .env-e
-        fi
-        KAFKA_BROKER="$HOST_IP:9092"
-        echo $KAFKA_BROKER
-        sed -ri -e 's!KAFKA_BROKER=.*$!KAFKA_BROKER='"$KAFKA_BROKER"'!g' .env.local
-        [ -f '.env.local-e' ] && rm .env.local-e
+        echo -e "\\nHOST_IP=$HOST_IP" >> .env
     else
-        echo -e "${RED}Unable to fetch Host IP!${NC}"
-        exit 1
+        sed -ri -e 's!HOST_IP=.*$!HOST_IP='"$HOST_IP"'!g' .env
+        [ -f '.env-e' ] && rm .env-e
     fi
+    KAFKA_BROKER="$HOST_IP:9092"
+    echo $KAFKA_BROKER
+    sed -ri -e 's!KAFKA_BROKER=.*$!KAFKA_BROKER='"$KAFKA_BROKER"'!g' .env.local
+    [ -f '.env.local-e' ] && rm .env.local-e
+    echo -e "${GRAY}UPDATE: The latest LocalStack image does translate --self-managed-event-source by serverless properly, but the event itself does not get dispatched when producing a message to Kafka broker!${NC}"
 fi
 echo
 echo -e "${BLUE}${step}. Create LocalStack Secret ...${NC}"
@@ -354,6 +388,13 @@ then
 else
     if [[ "$RECREATE" != '' ]]
     then
+        if ! grep -q 'LAMBDA_TOPIC' .env
+        then
+            echo -e "\\nLAMBDA_TOPIC=$LAMBDA_TOPIC" >> .env
+        else
+            sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env
+            [ -f '.env-e' ] && rm .env-e
+        fi
         echo -e "${BLUE}${step}. Starting self-managed Kafka on port 9092 ...${NC}"
         let "step=step+1"
         docker-compose -f docker-compose-kafka.yml up -d
@@ -373,33 +414,28 @@ else
     done
     echo
     echo
-    echo -e "${BLUE}${step}. Manually map topics from Lambda to Kafka ..."
-    echo -e "${GRAY}LocalStack does not seem to translate --self-managed-event-source by serverless${NC}"
-    echo -e "${GRAY}Issue addressed at https://github.com/localstack/localstack/issues/4569${NC}"
-    FUNC_ARN=$(aws --endpoint-url=$ENDPOINT lambda list-functions --query "Functions[?FunctionName==\`lambda-process-local-processDataTopic0\`].FunctionArn" --output text)
-    if [[ -n $FUNC_ARN ]]
-    then
-        if ! grep -q 'LAMBDA_TOPIC_PREFIX' .env
-        then
-            echo -e "\\nLAMBDA_TOPIC_PREFIX=$LAMBDA_TOPIC_PREFIX" >> .env
-        else
-            sed -ri -e 's!LAMBDA_TOPIC_PREFIX=.*$!LAMBDA_TOPIC_PREFIX='"$LAMBDA_TOPIC_PREFIX"'!g' .env
-            [ -f '.env-e' ] && rm .env-e
-        fi
-        sed -ri -e 's!LAMBDA_TOPIC_PREFIX=.*$!LAMBDA_TOPIC_PREFIX='"$LAMBDA_TOPIC_PREFIX"'!g' .env.local
-        sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env.local
-        [ -f '.env.local-e' ] && rm .env.local-e
-        echo "create-event-source-mapping: \"$LAMBDA_TOPIC\""
-        aws --endpoint-url=$ENDPOINT lambda create-event-source-mapping \
-            --topics $LAMBDA_TOPIC \
-            --source-access-configuration Type=SASL_SCRAM_512_AUTH,URI=$SECRET_ARN \
-            --function-name $FUNC_ARN \
-            --self-managed-event-source "{\"Endpoints\":{\"KAFKA_BOOTSTRAP_SERVERS\":[\"$HOST_IP:9092\"]}}" \
-            &>/dev/null # LocalStack opens output in text editor which breaks the loop!
-    else
-        echo -e "${RED}Unable to create event source map for Kafka topic: \"$LAMBDA_TOPIC\"${NC}"
-        exit 1
-    fi
+    echo -e "${GRAY}The latest LocalStack does seem to translate --self-managed-event-source by serverless, but the event itself does ${RED}not${GRAY} get dispatched wgen producing a message to Kafka broker!${NC}"
+    # echo -e "${BLUE}${step}. Manually map topics from Lambda to Kafka ..."
+    # echo -e "${GRAY}LocalStack does not seem to translate --self-managed-event-source by serverless${NC}"
+    # echo -e "${GRAY}Issue addressed at https://github.com/localstack/localstack/issues/4569${NC}"
+    # FUNC_ARN=$(aws --endpoint-url=$ENDPOINT lambda list-functions --query "Functions[?FunctionName==\`lambda-process-local-processDataTopic0\`].FunctionArn" --output text)
+    # if [[ -n $FUNC_ARN ]]
+    # then
+    #     sed -ri -e 's!LAMBDA_TOPIC_PREFIX=.*$!LAMBDA_TOPIC_PREFIX='"$LAMBDA_TOPIC_PREFIX"'!g' .env.local
+    #     sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env.local
+    #     [ -f '.env.local-e' ] && rm .env.local-e
+    #     echo "create-event-source-mapping: \"$LAMBDA_TOPIC\""
+    #     aws --endpoint-url=$ENDPOINT lambda create-event-source-mapping \
+    #         --topics $LAMBDA_TOPIC \
+    #         --source-access-configuration Type=SASL_SCRAM_512_AUTH,URI=$SECRET_ARN \
+    #         --function-name $FUNC_ARN \
+    #         --self-managed-event-source "{\"Endpoints\":{\"KAFKA_BOOTSTRAP_SERVERS\":[\"$HOST_IP:9092\"]}}" \
+    #         &>/dev/null # LocalStack opens output in text editor which breaks the loop!
+    # else
+    #     echo -e "${RED}Unable to create event source map for Kafka topic: \"$LAMBDA_TOPIC\"${NC}"
+    #     echo -e "${RED}The following Lambda ARN is missing: \"$FUNC_ARN\"${NC}"
+    #     exit 1
+    # fi
 fi
 echo
 echo -e "${BLUE}${step}. Deploy Lambda HTTP ...${NC}"
