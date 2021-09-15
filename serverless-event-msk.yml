@@ -68,9 +68,8 @@ package:
   excludeDevDependencies: true
   patterns:
     - 'lambda-process/**'
-  exclude:
-    - 'node_modules/**'
-    - 'serverless*.yml'
+    - '!node_modules/**'
+    - '!serverless*.yml'
 
 layers:
   layerBasicNodeModule:
@@ -80,11 +79,10 @@ layers:
     compatibleRuntimes:
       - nodejs12.x
     package:
-      include:
-        - nodejs/node_modules/**
-      exclude:
-        - 'node_modules/**/README.*'
-        - 'node_modules/**/test/**'
+      patterns:
+        - 'nodejs/node_modules/**'
+        - '!node_modules/**/README.*'
+        - '!node_modules/**/test/**'
 
 functions:
   
