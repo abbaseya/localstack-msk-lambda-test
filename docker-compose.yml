@@ -17,6 +17,7 @@ services:
             - MAIN_CONTAINER_NAME=test-localstack
             - SERVICES=cloudformation,cloudfront,apigateway,apigatewayv2,iam,secretsmanager,lambda,s3,sqs,sts,ec2,kafka,elb,elbv2
             - DEFAULT_REGION=us-east-1
+            - LAMBDA_EXECUTOR=docker-reuse
             # The following commented variables (as well as mounted $TMPDIR) resulting: [BrokerPool] Closed connection
             # - DATA_DIR=/tmp/localstack/data
             # - HOST_TMP_FOLDER=${TMPDIR}

@@ -5,7 +5,8 @@ ENDPOINT="https://$HOSTNAME"
 REGION="us-east-2" # matches default profile
 LAMBDA_BUCKET="lambda-bucket"
 LAMBDA_TOPIC_PREFIX="lambda_data"
-LAMBDA_TOPIC="${LAMBDA_TOPIC_PREFIX}_0"
+LAMBDA_TOPIC_0="${LAMBDA_TOPIC_PREFIX}_0"
+LAMBDA_TOPIC_1="${LAMBDA_TOPIC_PREFIX}_1"
 KAFKA_VERSION="2.5.0"
 CLUSTER_NAME="msk-cluster"
 CLUSTER_INFO="cluster-info.json"
@@ -405,11 +406,18 @@ then
     done
     echo
 else
-    if ! grep -q 'LAMBDA_TOPIC' .env
+    if ! grep -q 'LAMBDA_TOPIC_0' .env
     then
-        echo -e "\\nLAMBDA_TOPIC=$LAMBDA_TOPIC" >> .env
+        echo -e "\\nLAMBDA_TOPIC_0=$LAMBDA_TOPIC_0" >> .env
     else
-        sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env
+        sed -ri -e 's!LAMBDA_TOPIC_0=.*$!LAMBDA_TOPIC_0='"$LAMBDA_TOPIC_0"'!g' .env
+        [ -f '.env-e' ] && rm .env-e
+    fi
+    if ! grep -q 'LAMBDA_TOPIC_1' .env
+    then
+        echo -e "\\nLAMBDA_TOPIC_1=$LAMBDA_TOPIC_1" >> .env
+    else
+        sed -ri -e 's!LAMBDA_TOPIC_1=.*$!LAMBDA_TOPIC_1='"$LAMBDA_TOPIC_1"'!g' .env
         [ -f '.env-e' ] && rm .env-e
     fi
     echo -e "${BLUE}${step}. Starting self-managed Kafka on port 9092 ...${NC}"
@@ -438,17 +446,25 @@ else
     # if [[ -n $FUNC_ARN ]]
     # then
     #     sed -ri -e 's!LAMBDA_TOPIC_PREFIX=.*$!LAMBDA_TOPIC_PREFIX='"$LAMBDA_TOPIC_PREFIX"'!g' .env.local
-    #     sed -ri -e 's!LAMBDA_TOPIC=.*$!LAMBDA_TOPIC='"$LAMBDA_TOPIC"'!g' .env.local
+    #     sed -ri -e 's!LAMBDA_TOPIC_0=.*$!LAMBDA_TOPIC_0='"$LAMBDA_TOPIC_0"'!g' .env.local
+    #     sed -ri -e 's!LAMBDA_TOPIC_1=.*$!LAMBDA_TOPIC_1='"$LAMBDA_TOPIC_1"'!g' .env.local
     #     [ -f '.env.local-e' ] && rm .env.local-e
-    #     echo "create-event-source-mapping: \"$LAMBDA_TOPIC\""
+    #     echo "create-event-source-mapping: \"$LAMBDA_TOPIC_0\""
     #     aws --endpoint-url=$ENDPOINT lambda create-event-source-mapping \
-    #         --topics $LAMBDA_TOPIC \
+    #         --topics $LAMBDA_TOPIC_0 \
+    #         --source-access-configuration Type=SASL_SCRAM_512_AUTH,URI=$SECRET_ARN \
+    #         --function-name $FUNC_ARN \
+    #         --self-managed-event-source "{\"Endpoints\":{\"KAFKA_BOOTSTRAP_SERVERS\":[\"$HOST_IP:9092\"]}}" \
+    #         &>/dev/null # LocalStack opens output in text editor which breaks the loop!
+    #     echo "create-event-source-mapping: \"$LAMBDA_TOPIC_1\""
+    #     aws --endpoint-url=$ENDPOINT lambda create-event-source-mapping \
+    #         --topics $LAMBDA_TOPIC_1 \
     #         --source-access-configuration Type=SASL_SCRAM_512_AUTH,URI=$SECRET_ARN \
     #         --function-name $FUNC_ARN \
     #         --self-managed-event-source "{\"Endpoints\":{\"KAFKA_BOOTSTRAP_SERVERS\":[\"$HOST_IP:9092\"]}}" \
     #         &>/dev/null # LocalStack opens output in text editor which breaks the loop!
     # else
-    #     echo -e "${RED}Unable to create event source map for Kafka topic: \"$LAMBDA_TOPIC\"${NC}"
+    #     echo -e "${RED}Unable to create event source map for Kafka topics: \"$LAMBDA_TOPIC_0\" and \"$LAMBDA_TOPIC_1\"${NC}"
     #     echo -e "${RED}The following Lambda ARN is missing: \"$FUNC_ARN\"${NC}"
     #     exit 1
     # fi

@@ -1,6 +1,9 @@
 service: lambda-process
 frameworkVersion: '2'
+configValidationMode: warn
 useDotenv: true
+variablesResolutionMode: null
+unresolvedVariablesNotificationMode: warn
 
 provider:
   name: aws
@@ -12,7 +15,6 @@ provider:
   stage: ${opt:stage, self:provider.environment.version}
   region: ${env:REGION}
   deploymentPrefix: deploy-serverless
-  endpointType: EDGE
   deploymentBucket:
     name: lambda-bucket
     blockPublicAccess: true
@@ -46,21 +48,15 @@ provider:
     KAFKA_BROKER: ${env:KAFKA_BROKER}
     KAFKA_DATA_TOPIC_PREFIX: ${env:LAMBDA_TOPIC_PREFIX}
   tracing:
-    apiGateway: ${self:custom.debugLogging.${self:provider.stage}}
+    apiGateway: false
     lambda: ${self:custom.debugLogging.${self:provider.stage}}
   logs:
-    restApi:
-      executionLogging: ${self:custom.debugLogging.${self:provider.stage}}
-      enableAccessLogging: ${self:custom.debugLogging.${self:provider.stage}}
-      accessLogging: ${self:custom.debugLogging.${self:provider.stage}}
-      level: ERROR
-    httpApi: ${self:custom.debugLogging.${self:provider.stage}}
     lambda: ${self:custom.debugLogging.${self:provider.stage}}
-    websocket: ${self:custom.debugLogging.${self:provider.stage}}
     frameworkLambda: ${self:custom.debugLogging.${self:provider.stage}}
   logRetentionInDays: ${self:custom.logRetentionInDays.${self:provider.stage}}
 
 plugins:
+  - serverless-jetpack
   - serverless-localstack
 
 package:
