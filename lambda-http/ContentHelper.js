@@ -18,7 +18,7 @@ const ContentHelper = {
     },
     sendCompressed: async function (chunkContainer) {
         let chunkString = JSON.stringify(chunkContainer),
-            brokersUrl = process.env.KAFKA_BROKER.replace('localhost', process.env.LOCALSTACK_HOSTNAME),
+            brokersUrl = process.env.KAFKA_BROKER,
             topicName = process.env.KAFKA_DATA_TOPIC_PREFIX + '_0';
         
         console.log('brokersUrl:', brokersUrl);

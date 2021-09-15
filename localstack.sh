@@ -1,6 +1,7 @@
 #!/bin/bash
 
-ENDPOINT="https://localhost.localstack.cloud"
+HOSTNAME='localhost.localstack.cloud'
+ENDPOINT="https://$HOSTNAME"
 REGION="us-east-2" # matches default profile
 LAMBDA_BUCKET="lambda-bucket"
 LAMBDA_TOPIC_PREFIX="lambda_data"
@@ -29,6 +30,7 @@ LocalStack Lambda/MSK Test Tool
 
 OPTIONS:
 -r|--recreate           Stop and remove containers and/or volumes before starting again
+-n|--use-hostname       Use "localhost.localstack.cloud" instead of LOCALSTACK_HOSTNAME
 -k|--use-kafka          Use self-managaed Kafka instead of MSK
 -z|--use-zookeeper      Fetch ZookeeperConnectString instead of BootstrapBrokerString
 -f|--force-host         Use Host IP for MSK instead of LOCALSTACK_HOSTNAME
@@ -56,6 +58,7 @@ clean()
 
 RECREATE=''
 USE_MSK='yes'
+USE_HOSTNAME=''
 USE_ZOOKEEPER=''
 USE_HOST=''
 USE_GATEWAY=''
@@ -64,6 +67,9 @@ do
     case "$1" in
         -r | --recreate)
             RECREATE='yes'
+            ;;
+        -n | --use-hostname)
+            USE_HOSTNAME='yes'
             ;;
         -k | --use-kafka)
             USE_MSK=''
@@ -270,6 +276,9 @@ EOM
         elif [[ "$USE_GATEWAY" != '' ]]
         then
             KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g' | sed 's/localhost/'"$GATEWAY_IP"'/g')
+        elif [[ "$USE_HOSTNAME" != '' ]]
+        then
+            KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g' | sed 's/localhost/'"$HOSTNAME"'/g')
         else
             KAFKA_BROKER=$(aws --endpoint-url=$ENDPOINT kafka get-bootstrap-brokers --cluster-arn $CLUSTER_ARN --query "BootstrapBrokerString" | sed -r 's/"(.*)"/\1/g')
         fi
@@ -286,6 +295,9 @@ EOM
         elif [[ "$USE_GATEWAY" != '' ]]
         then
             echo -e "${GRAY}NOTE: MSK still returning ${RED}NoBrokersAvailable${GRAY} on \"localhost:XXXX\" during testing, while we explicitly set the brokerUrl to \"$GATEWAY_IP:XXXX\"!${NC}"
+        elif [[ "$USE_HOSTNAME" != '' ]]
+        then
+            echo -e "${GRAY}UPDATE: The latest LocalStack image can connect to MSK on \"$HOSTNAME:XXXX\"${NC}"
         else
             echo -e "${GRAY}NOTE: MSK still returning ${RED}ECONNREFUSED${GRAY} on \"localhost:XXXX\" during testing!${NC}"
         fi
@@ -320,7 +332,7 @@ else
     echo $KAFKA_BROKER
     sed -ri -e 's!KAFKA_BROKER=.*$!KAFKA_BROKER='"$KAFKA_BROKER"'!g' .env.local
     [ -f '.env.local-e' ] && rm .env.local-e
-    echo -e "${GRAY}UPDATE: The latest LocalStack image does translate --self-managed-event-source by serverless properly, but the event itself does not get dispatched when producing a message to Kafka broker!${NC}"
+    echo -e "${GRAY}UPDATE: The latest LocalStack image does translate --self-managed-event-source by serverless properly, but the event itself does not get dispatched when producing a message to Kafka Broker!${NC}"
 fi
 echo
 echo -e "${BLUE}${step}. Create LocalStack Secret ...${NC}"
