@@ -13,6 +13,7 @@
 * AWS CLI v2+
 * Serverless v2+
 * Node.js v12+
+* WSCAT 5+
 
 ## Instructions
 

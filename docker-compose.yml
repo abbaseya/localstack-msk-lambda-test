@@ -3,21 +3,20 @@ version: '3.9'
 services:
     test-localstack:
         container_name: test-localstack
-        image: localstack/localstack-full
+        image: localstack/localstack
         ports:
             - 443:443
             - 4510-4530:4510-4530
             - 4566:4566
             - 4571:4571
-            # - 7080:8080 # TODO: web ui not working!
+            # - 8080:8080 # TODO: web ui not working!
         environment:
             - LOCALSTACK_API_KEY=${LOCALSTACK_LICENSE}
-            - USE_LIGHT_IMAGE=0
-            - IMAGE_NAME=localstack/localstack-full
+            - USE_LIGHT_IMAGE=1
+            - IMAGE_NAME=localstack/localstack
             - MAIN_CONTAINER_NAME=test-localstack
             - SERVICES=cloudformation,cloudfront,apigateway,apigatewayv2,iam,secretsmanager,lambda,s3,sqs,sts,ec2,kafka,elb,elbv2
             - DEFAULT_REGION=us-east-1
-            # The following commented variables (as well as mounted $TMPDIR) resulting: [BrokerPool] Closed connection
             # - DATA_DIR=/tmp/localstack/data
             # - HOST_TMP_FOLDER=${TMPDIR}
             # - LAMBDA_REMOTE_DOCKER=false

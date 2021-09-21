@@ -4,7 +4,8 @@
   "scripts": {
     "deploy-http": "serverless deploy --config serverless.yml --stage local",
     "deploy-event-msk": "serverless deploy --config serverless-event-msk.yml --stage local",
-    "deploy-event-kafka": "serverless deploy --config serverless-event-kafka.yml --stage local"
+    "deploy-event-kafka": "serverless deploy --config serverless-event-kafka.yml --stage local",
+    "deploy-socket": "serverless deploy --config serverless-event-socket.yml --stage local"
   },
   "keywords": [],
   "author": "Ahmed Abbas me@abbas.guru",

@@ -7,6 +7,7 @@
   "dependencies": {
     "aws-sdk": "^2.918.0",
     "kafkajs": "^1.15.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "lzutf8": "^0.5.8"
   }
 }
