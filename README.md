@@ -7,6 +7,7 @@
 - [ ] Issue [#4550](https://github.com/localstack/localstack/issues/4550): _Pending_
 - [x] Issue [#4626](https://github.com/localstack/localstack/issues/4626): **Resolved** using the latest LocalStack docker image released on 22 Sep 2021 - Thanks to [@whummer](https://github.com/whummer) – Passed test using `./socket.sh`
 - [x] Issue [#4606](https://github.com/localstack/localstack/issues/4606): **Resolved** using the latest LocalStack docker image released on 11 Oct 2021 - Thanks to [@whummer](https://github.com/whummer) – Passed test using `../localstack.sh --use-hostname`
+- [ ] Issue [#4893](https://github.com/localstack/localstack/issues/4893)
 
 ## Requirements
 
