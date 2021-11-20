@@ -129,6 +129,12 @@ echo -e "${BLUE}${step}. Deploy Lambda WebSocket ...${NC}"
 let "step=step+1"
 npm run deploy-socket
 
+echo
+echo
+echo -e "Now observe LocalStack logs around ${RED}InvocationException${NC}, ${RED}NoSuchKey${NC}, and ${RED}Unable to fetch CF custom resource result from s3${NC}!"
+echo -e "${GRAY}docker container logs --follow test-localstack${NC}"
+exit 1
+
 echo -e "${GRAY}Waiting for Lambda to be ready ...${NC}"
 let "sec=5"
 while [ $sec -ge 0 ]

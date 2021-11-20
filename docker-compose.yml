@@ -22,6 +22,8 @@ services:
             # - LAMBDA_REMOTE_DOCKER=false
             - AWS_ACCESS_KEY_ID=test
             - AWS_SECRET_ACCESS_KEY=test
+            - EAGER_SERVICE_LOADING=1
+            - S3_SKIP_SIGNATURE_VALIDATION=1
             - DEBUG=1
             # - LS_LOG=trace # uncomment for detailed logs
         volumes:
