@@ -5,10 +5,17 @@ services:
         container_name: test-localstack
         image: localstack/localstack
         ports:
+            # - "127.0.0.1:53:53"
+            # - "127.0.0.1:53:53/udp"
+            # - "127.0.0.1:443:443"
+            # - "127.0.0.1:4510-4530:4510-4530"
+            # - "127.0.0.1:4566:4566"
+            # - "127.0.0.1:4571:4571"
             - 443:443
             - 4510-4530:4510-4530
             - 4566:4566
             - 4571:4571
+            # - 4600:4600 # EC2 Starter - VM manager
             # - 8080:8080 # TODO: web ui not working!
         environment:
             - LOCALSTACK_API_KEY=${LOCALSTACK_LICENSE}
@@ -24,6 +31,10 @@ services:
             - AWS_SECRET_ACCESS_KEY=test
             - EAGER_SERVICE_LOADING=1
             - S3_SKIP_SIGNATURE_VALIDATION=1
+            - LAMBDA_CONTAINER_REGISTRY=mlupin/docker-lambda
+            # - LAMBDA_DOCKER_DNS=8.8.8.8
+            # - DNS_ADDRESS=0
+            # - DNS_ADDRESS=8.8.8.8
             - DEBUG=1
             # - LS_LOG=trace # uncomment for detailed logs
         volumes:

@@ -8,7 +8,7 @@
 - [x] Issue [#4626](https://github.com/localstack/localstack/issues/4626): **Resolved** using the latest LocalStack docker image released on 22 Sep 2021 - Thanks to [@whummer](https://github.com/whummer) – Passed test using `./socket.sh`
 - [x] Issue [#4606](https://github.com/localstack/localstack/issues/4606): **Resolved** using the latest LocalStack docker image released on 11 Oct 2021 - Thanks to [@whummer](https://github.com/whummer) – Passed test using `../localstack.sh --use-hostname`
 - [x] Issue [#4893](https://github.com/localstack/localstack/issues/4893)
-- [ ] Issue [#4970](https://github.com/localstack/localstack/issues/4970)
+- [x] Issue [#4970](https://github.com/localstack/localstack/issues/4970): **Resolved** by adding `LAMBDA_CONTAINER_REGISTRY=mlupin/docker-lambda` where it supports `arm64` (_suggested by [@naspeh](https://github.com/naspeh) in Slack Community Support channel_).
 
 ## Requirements
 
